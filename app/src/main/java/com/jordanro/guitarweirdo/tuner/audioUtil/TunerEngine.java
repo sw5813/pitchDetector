@@ -81,9 +81,9 @@ public class TunerEngine extends Thread{
             if(currentFrequency > 0 && currentVolume > 2800){
                 mHandler.post(callback);
                 try {
-                    targetDataLine_.stop();
+                    //targetDataLine_.stop();
                     Thread.sleep(10);
-                    targetDataLine_.startRecording();
+                    //targetDataLine_.startRecording();
                 } catch (InterruptedException e) {
 //                    e.printStackTrace();
                 }
@@ -93,7 +93,7 @@ public class TunerEngine extends Thread{
     }
 
     public void close(){
-//        targetDataLine_.stop();
+        targetDataLine_.stop();
         targetDataLine_.release();
     }
 

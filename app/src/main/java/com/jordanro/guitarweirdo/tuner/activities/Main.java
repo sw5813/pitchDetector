@@ -150,7 +150,7 @@ public class Main extends Activity {
     private void sendToServer() {
         noteslist.add(current_note);
         System.out.println(current_note);
-        System.out.println(tuner.currentVolume);
+        System.out.println("volume: " + tuner.currentVolume);
         TextView notes = (TextView)findViewById(R.id.notes);
         notes.setText(noteslist.toString());
         // Create playlist with EchoNest Api
@@ -193,39 +193,47 @@ public class Main extends Activity {
     }
 
     public void updateUI(double frequency){
+        if (frequency >= 196 && frequency <= 1567.98) {
+            if (firstUpdate) {
+                leftV.setVisibility(View.VISIBLE);
+                centerV.setVisibility(View.VISIBLE);
+                rightV.setVisibility(View.VISIBLE);
+                firstUpdate = false;
 
-        if(firstUpdate) {
-            leftV.setVisibility(View.VISIBLE);
-            centerV.setVisibility(View.VISIBLE);
-            rightV.setVisibility(View.VISIBLE);
-            firstUpdate = false;
-        }
+                Button resetButton = (Button)findViewById(R.id.reset);
 
-        frequency = normaliseFreq(frequency);
-        int note = closestNote(frequency);
-        double matchFreq = FREQUENCIES[note];
-        int offset = 0;
+                resetButton.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View view) {
+                        noteslist = new ArrayList<String>();
+                    }
+                });
+            }
+            System.out.println("frequency: " + frequency);
+            //frequency = normaliseFreq(frequency);
+            int note = closestNote(frequency);
+            double matchFreq = FREQUENCIES[note];
+            int offset = 0;
 
-        if ( frequency < matchFreq ) {
-            double prevFreq = FREQUENCIES[note-1];
-            offset = (int)(-(frequency-matchFreq)/(prevFreq-matchFreq)/0.2);
-        }
-        else {
-            double nextFreq = FREQUENCIES[note+1];
-            offset = (int)((frequency-matchFreq)/(nextFreq-matchFreq)/0.2);
-        }
-        int frameShift = note - currentFrameIndex;
-        if(note > currentFrameIndex){
-            currentFrameIndex = note;
-        }
-        else if(note < currentFrameIndex){
-            currentFrameIndex = note;
-        }
+            if (frequency < matchFreq) {
+                double prevFreq = FREQUENCIES[note - 1];
+                offset = (int) (-(frequency - matchFreq) / (prevFreq - matchFreq) / 0.2);
+            } else {
+                double nextFreq = FREQUENCIES[note + 1];
+                offset = (int) ((frequency - matchFreq) / (nextFreq - matchFreq) / 0.2);
+            }
+            int frameShift = note - currentFrameIndex;
+            if (note > currentFrameIndex) {
+                currentFrameIndex = note;
 
-        current_note = NAME[currentFrameIndex];
-        sendToServer();
+            } else if (note < currentFrameIndex) {
+                currentFrameIndex = note;
+            }
 
-        moveGauge(frameShift, offset);
+            current_note = NAME[currentFrameIndex];
+            sendToServer();
+
+            moveGauge(frameShift, offset);
+        }
     }
 
     TextView currentLayer;
@@ -237,9 +245,13 @@ public class Main extends Activity {
             currentLayer = null;
         }
         if(frameShift != 0){
-            leftV.setText(NAME[currentFrameIndex-1]);
+            if (currentFrameIndex != 0) {
+                leftV.setText(NAME[currentFrameIndex - 1]);
+            } else if (currentFrameIndex != NAME.length) {
+                rightV.setText(NAME[currentFrameIndex+1]);
+            }
             centerV.setText(NAME[currentFrameIndex]);
-            rightV.setText(NAME[currentFrameIndex+1]);
+
         }
         int currentOffset = offset*15;
         if(currentOffset == 0 && (frameShift != 0 || currentLayer == null)){
