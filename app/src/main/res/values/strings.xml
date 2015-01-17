@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OGTuner</string>
+    <!--tuner-->
+    <string name="tuner_on">Tuner On</string>
+    <string name="tuner_off">Tuner Off</string>
+    <!--notes-->
+    <string name="d_sharp_note">D#</string>
+    <string name="e_note">E</string>
+    <string name="f_note">F</string>
+    <string name="f_sharp_note">F#</string>
+    <string name="g_note">G</string>
+    <string name="g_sharp_note">G#</string>
+    <string name="a_note">A</string>
+    <string name="a_sharp_note">A#</string>
+    <string name="b_note">B</string>
+    <string name="c_note">C</string>
+    <string name="c_sharp_note">C#</string>
+    <string name="d_note">D</string>
+</resources>

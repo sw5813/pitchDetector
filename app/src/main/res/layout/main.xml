@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@color/tuner"
+    >
+    <Button android:id="@+id/toggle_tuner"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/tuner_on"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+    />
+	<RelativeLayout android:id="@+id/gauge_background"
+		android:layout_width="250sp"
+		android:layout_height="80sp"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/gauge_bg"
+    >
+        <TextView android:id="@+id/left_note"
+            android:layout_alignParentLeft="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="D#"
+            android:textSize="45px"
+            android:textStyle="bold"
+            android:typeface="sans"
+            android:visibility="gone"
+            android:paddingLeft="4px"
+        />
+        <TextView android:id="@+id/center_note"
+            android:layout_centerInParent="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="E"
+            android:textSize="45px"
+            android:textStyle="bold"
+            android:typeface="sans"
+            android:visibility="gone"
+        />
+        <TextView android:id="@+id/right_note"
+            android:layout_alignParentRight="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="F"
+            android:textSize="45px"
+            android:textStyle="bold"
+            android:typeface="sans"
+            android:visibility="gone"
+            android:paddingRight="4px"
+        />
+    </RelativeLayout>
+    <LinearLayout
+        android:id="@+id/gauge"
+        android:layout_width="wrap_content"
+        android:layout_height="86sp"
+        android:background="@drawable/gauge"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+    />
+</RelativeLayout>
