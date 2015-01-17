@@ -6,8 +6,8 @@ android {
 
     defaultConfig {
         applicationId "com.jordanro.guitarweirdo.tuner"
-        minSdkVersion 3
-        targetSdkVersion 3
+        minSdkVersion 19
+        targetSdkVersion 19
 
         ndk {
             moduleName "FFT"
@@ -32,5 +32,6 @@ repositories {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:20.+'
     compile 'com.loopj.android:android-async-http:1.4.6'
 }

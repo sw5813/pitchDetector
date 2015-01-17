@@ -12,6 +12,12 @@ public class ServerApi {
 
     private static AsyncHttpClient client = new AsyncHttpClient();
 
+    // get JSON notes, turn it into an array
+    public static void get(String url, RequestParams params, AsyncHttpResponseHandler responseHandler) {
+        client.post(getAbsoluteUrl(url), params, responseHandler);
+    }
+
+    // send index of pause + new note
     public static void post(String url, RequestParams params, AsyncHttpResponseHandler responseHandler) {
         client.post(getAbsoluteUrl(url), params, responseHandler);
     }

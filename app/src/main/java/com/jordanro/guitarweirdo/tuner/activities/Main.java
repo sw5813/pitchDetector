@@ -1,7 +1,9 @@
 package com.jordanro.guitarweirdo.tuner.activities;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -11,6 +13,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.view.animation.Animation;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Button;
 import android.media.MediaPlayer;
@@ -32,11 +35,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Main extends Activity {
     private static final double[] FREQUENCIES = { 196, 207.65, 220, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98};
     private static final String[] NAME        = {"","G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "D#",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",   "G",""};
+    ArrayList<Integer> noteslist = new ArrayList<Integer>();
 
     TunerEngine tuner;
     final Handler mHandler = new Handler();
@@ -46,35 +51,40 @@ public class Main extends Activity {
         }
     };
 
+    TextView prev_note, current_note, next_note;
 	View animator;
     TextView leftV,centerV,rightV;
     boolean firstUpdate;
     public static final int DEFAULT_TRANSFORM_DURATION = 150;
     public static final int DEFAULT_ALPHA_DURATION = 70;
 
-    Button toggleTuner;
-    String tuner_on,tuner_off;
-
-    ArrayList<Integer> noteslist = new ArrayList<Integer>();
-
-    private int current_note = 0;
-
+    ImageView toggleTuner;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-		animator = findViewById(R.id.gauge_background);
+
+        noteslist.add(5);
+        noteslist.add(6);
+        noteslist.add(7);
+        noteslist.add(8);
+        noteslist.add(9);
+        noteslist.add(10);
+        noteslist.add(11);
+
+        animator = findViewById(R.id.gauge_background);
 
 		leftV = (TextView) findViewById(R.id.left_note);
 		centerV = (TextView) findViewById(R.id.center_note);
 		rightV = (TextView) findViewById(R.id.right_note);
         defaultColor = rightV.getCurrentTextColor();
 
-		toggleTuner = (Button)findViewById(R.id.toggle_tuner);
-        tuner_on = getResources().getString(R.string.tuner_on);
-        tuner_off = getResources().getString(R.string.tuner_off);
+        prev_note = (TextView) findViewById(R.id.prev_note);
+        current_note = (TextView) findViewById(R.id.current_note);
+        next_note = (TextView) findViewById(R.id.next_note);
 
+		toggleTuner = (ImageView)findViewById(R.id.toggle_tuner);
 		toggleTuner.setOnClickListener(new View.OnClickListener() {
             boolean start = true;
             public void onClick(View view) {
@@ -109,7 +119,7 @@ public class Main extends Activity {
             try {
                 tuner = new TunerEngine(mHandler,callback);
                 tuner.start();
-                toggleTuner.setText(tuner_off);
+                toggleTuner.setImageResource(R.drawable.stop);
                 animator.startAnimation(fadeIn50);
                 animator.getBackground().setAlpha(255);
                 if(currentLayer != null){
@@ -126,7 +136,7 @@ public class Main extends Activity {
             if(currentLayer != null){
                 currentLayer.setTextColor(0XCCFFCC33);
             }
-            toggleTuner.setText(tuner_on);
+            toggleTuner.setImageResource(R.drawable.start);
         }
 
     }
@@ -136,16 +146,10 @@ public class Main extends Activity {
     Animation fadeOut50  = AnimationFactory.getAnimation(AnimationFactory.FADE_OUT_50,300);
     int previousOffset = 0;
     int currentFrameIndex = 1;
-    int numFrames = 12;
 
     private void sendToServer() {
-        noteslist.add(current_note);
-        TextView notes = (TextView)findViewById(R.id.notes);
-        notes.setText(noteslist.toString());
 
-        TextView finalnotes = (TextView)findViewById(R.id.finalnotes);
-
-        // Create playlist with EchoNest Api
+        // Send index + new note
         /*
         RequestParams en_params = new RequestParams();
         en_params.put("note", note);
@@ -184,6 +188,11 @@ public class Main extends Activity {
 
     }
 
+    private void pullfromServer() {
+
+    }
+
+
     public void updateUI(double frequency){
         if (firstUpdate) {
             leftV.setVisibility(View.VISIBLE);
@@ -191,19 +200,15 @@ public class Main extends Activity {
             rightV.setVisibility(View.VISIBLE);
             firstUpdate = false;
 
-            Button resetButton = (Button)findViewById(R.id.reset);
-
-            resetButton.setOnClickListener(new View.OnClickListener() {
-                public void onClick(View view) {
-                    noteslist = new ArrayList<Integer>();
-                }
-            });
+            current_note.setText(NAME[noteslist.get(0)+1]);
+            next_note.setText(NAME[noteslist.get(1)+1]);
+            prev_note.setText("");
         }
-        System.out.println("frequency: " + frequency);
+
+        // show tuner thing
         int note = closestNote(frequency);
         double matchFreq = FREQUENCIES[note];
         int offset = 0;
-
         if (frequency < matchFreq) {
             double prevFreq = (note == 0) ? 185 : FREQUENCIES[note - 1];
             offset = (int) (-(frequency - matchFreq) / (prevFreq - matchFreq) / 0.2);
@@ -219,16 +224,28 @@ public class Main extends Activity {
             currentFrameIndex = note;
         }
 
-        current_note = currentFrameIndex;
-        int last_index = noteslist.size() - 1;
-        if (last_index == -1) {
-            sendToServer();
-        } else {
-            int previous_freq = noteslist.get(last_index);
-            if (noteslist.get(last_index) != current_note && (frequency < previous_freq-10 || frequency > previous_freq+10)) {
-                sendToServer();
-            }
+        // Check if the note played is correct
+        double ideal_frequency = FREQUENCIES[noteslist.get(0)];
+        if (frequency < ideal_frequency + 50 || frequency < ideal_frequency - 50) {
+            if (prev_note.getText() != "") { noteslist.remove(0); }
+            // switch notes
+            next_note.setText(NAME[noteslist.get(2)+1]);
+            prev_note.setText(NAME[noteslist.get(0)+1]);
+            current_note.setText(NAME[noteslist.get(1)+1]);
         }
+
+        // check for pause and new note
+        if (frequency < ideal_frequency + 200 || frequency > ideal_frequency - 200) {
+            // sendToServer(index, new_note);
+            current_note.setTextColor(getResources().getColor(R.color.red));
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable(){
+                public void run() {
+                    current_note.setTextColor(getResources().getColor(R.color.white));
+                }
+            }, 500);
+        }
+
 
         moveGauge(frameShift, offset);
     }

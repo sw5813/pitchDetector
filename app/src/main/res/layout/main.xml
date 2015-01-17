@@ -2,23 +2,17 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:background="@color/tuner"
+    android:background="@color/background"
     >
-    <Button android:id="@+id/toggle_tuner"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/tuner_on"
+    <ImageView android:id="@+id/toggle_tuner"
+        android:layout_width="400dp"
+        android:layout_height="150dp"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
-    />
-    <Button android:id="@+id/reset"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:text="reset"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="50dp"
-        />
+        android:layout_margin="20dp"
+        android:src="@drawable/start"
+        android:clickable="true" />
+
 	<RelativeLayout android:id="@+id/gauge_background"
 		android:layout_width="250sp"
 		android:layout_height="80sp"
@@ -61,6 +55,7 @@
     </RelativeLayout>
     <LinearLayout
         android:id="@+id/gauge"
+        android:orientation="horizontal"
         android:layout_width="wrap_content"
         android:layout_height="86sp"
         android:background="@drawable/gauge"
@@ -69,22 +64,32 @@
     />
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:gravity="center" >
         <TextView
-            android:id="@+id/notes"
-            android:layout_width="match_parent"
+            android:id="@+id/prev_note"
+            android:layout_width="wrap_content"
             android:layout_height="200dp"
-            android:textSize="20sp"
-            android:text="test"
+            android:layout_margin="10dp"
+            android:textSize="100sp"
+            android:text="C"
+            android:textColor="#FFFFFF" />
+        <TextView
+            android:id="@+id/current_note"
+            android:layout_width="wrap_content"
+            android:layout_height="200dp"
+            android:layout_margin="10dp"
+            android:textSize="150sp"
+            android:text="G"
+            android:textColor="#FFFFFF" />
+        <TextView
+            android:id="@+id/next_note"
+            android:layout_width="wrap_content"
+            android:layout_height="200dp"
+            android:layout_margin="10dp"
+            android:textSize="100sp"
+            android:text="D"
             android:textColor="#FFFFFF" />
     </LinearLayout>
-    <TextView
-        android:id="@+id/finalnotes"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="100dp"
-        android:textSize="20sp"
-        android:text="test"
-        android:textColor="#FFFFFF" />
+
 </RelativeLayout>

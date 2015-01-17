@@ -91,7 +91,7 @@ public class TunerEngine extends Thread{
                 System.out.println("amplitude: " + currentVolume);
             }
 //            System.out.println("process time  = " + (System.currentTimeMillis() - l));
-            if(currentFrequency >= 180 && currentFrequency <= 1600 && currentVolume > 2000000) {
+            if(currentFrequency >= 180 && currentFrequency <= 1600 && currentVolume > 15000000) {
                 mHandler.post(callback);
                 try {
                     Thread.sleep(1);

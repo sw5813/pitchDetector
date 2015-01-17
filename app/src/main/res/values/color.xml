@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<color name="main">#FFA80000</color>
-<color name="tuner">#B8B8B8</color>
-<color name="lesson">#383838</color>
+    <color name="background">#44bbcc</color>
+    <color name="green">#00FF66</color>
+    <color name="red">#CC4E5C</color>
+    <color name="white">#FFF</color>
 </resources>
