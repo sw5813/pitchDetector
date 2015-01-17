@@ -70,13 +70,4 @@
             android:text="test"
             android:textColor="#FFFFFF" />
     </LinearLayout>
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:layout_marginBottom="100dp"
-        android:layout_alignParentBottom="true"
-        android:max="4000"
-        android:progressDrawable="@drawable/progressbar" />
 </RelativeLayout>

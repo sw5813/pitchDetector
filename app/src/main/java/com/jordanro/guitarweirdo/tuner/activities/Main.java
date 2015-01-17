@@ -40,8 +40,8 @@ import java.util.List;
  * Time: 6:27:14 PM
  */
 public class Main extends Activity {
-    private static final double[] FREQUENCIES = { 77.78, 82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81 ,174.61};
-    private static final String[] NAME        = {  "D#",  "E",   "F",   "F#"  , "G" ,  "G#",   "A",    "A#",   "B",   "C",     "C#",   "D",   "D#"   ,"E"  ,   "F" };
+    private static final double[] FREQUENCIES = { 196, 207.65, 220, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98};
+    private static final String[] NAME        = {  "G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "D#",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",    "G"};
 
     TunerEngine tuner;
     final Handler mHandler = new Handler();
@@ -63,13 +63,7 @@ public class Main extends Activity {
 
     ArrayList<String> noteslist = new ArrayList<String>();
 
-    // Volume Detection
-    public static final int SAMPLE_RATE = 16000;
-
-    private AudioRecord mRecorder;
-    private File mRecording;
-    private short[] mBuffer;
-    private boolean mIsRecording = false;
+    private String current_note = "C";
 
 
     @Override
@@ -86,28 +80,21 @@ public class Main extends Activity {
 		toggleTuner = (Button)findViewById(R.id.toggle_tuner);
         tuner_on = getResources().getString(R.string.tuner_on);
         tuner_off = getResources().getString(R.string.tuner_off);
-//        createLayout();
 
 		toggleTuner.setOnClickListener(new View.OnClickListener() {
             boolean start = true;
             public void onClick(View view) {
                 toggleTunerState(start);
                 start = !start;
-                mIsRecording = !mIsRecording;
-                mRecorder.startRecording();
-                mRecording = getFile("raw");
-                startBufferedWrite(mRecording);
             }
 		});
 
         // Volume Detection
-        initRecorder();
 
 	}
 
     public void onStart(){
         super.onStart();
-        playIntro(this);
         initLayoutState();
     }
 
@@ -119,16 +106,8 @@ public class Main extends Activity {
         super.onPause();
     }
 
-    private void initRecorder() {
-        int bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
-        mBuffer = new short[bufferSize];
-        mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-    }
-
     int defaultColor;
-    private void initLayoutState(){
+    private void initLayoutState() {
         animator.getBackground().setAlpha(127);
         firstUpdate = true;
     }
@@ -168,8 +147,10 @@ public class Main extends Activity {
     int currentFrameIndex = 1;
     int numFrames = 12;
 
-    private void sendToServer(String note) {
-        noteslist.add(note);
+    private void sendToServer() {
+        noteslist.add(current_note);
+        System.out.println(current_note);
+        System.out.println(tuner.currentVolume);
         TextView notes = (TextView)findViewById(R.id.notes);
         notes.setText(noteslist.toString());
         // Create playlist with EchoNest Api
@@ -213,7 +194,7 @@ public class Main extends Activity {
 
     public void updateUI(double frequency){
 
-        if(firstUpdate){
+        if(firstUpdate) {
             leftV.setVisibility(View.VISIBLE);
             centerV.setVisibility(View.VISIBLE);
             rightV.setVisibility(View.VISIBLE);
@@ -241,7 +222,9 @@ public class Main extends Activity {
             currentFrameIndex = note;
         }
 
-        sendToServer(NAME[currentFrameIndex]);
+        current_note = NAME[currentFrameIndex];
+        sendToServer();
+
         moveGauge(frameShift, offset);
     }
 
@@ -295,58 +278,4 @@ public class Main extends Activity {
         return minFreq;
     }
 
-    private static void playIntro(android.content.Context context){
-        MediaPlayer.create(context, R.raw.subbacultcha).start();
-    }
-
-    private void startBufferedWrite(final File file) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                DataOutputStream output = null;
-                try {
-                    output = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
-                    while (mIsRecording) {
-                        double sum = 0;
-                        int readSize = mRecorder.read(mBuffer, 0, mBuffer.length);
-                        for (int i = 0; i < readSize; i++) {
-                            output.writeShort(mBuffer[i]);
-                            sum += mBuffer[i] * mBuffer[i];
-                        }
-                        if (readSize > 0) {
-                            final double amplitude = sum / readSize;
-                            if (amplitude > 3000000) {
-                                System.out.println(amplitude);
-                            }
-                        }
-                    }
-                } catch (IOException e) {
-                    Toast.makeText(Main.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                } finally {
-                    System.out.println(0);
-                    if (output != null) {
-                        try {
-                            output.flush();
-                        } catch (IOException e) {
-                            Toast.makeText(Main.this, e.getMessage(), Toast.LENGTH_SHORT)
-                                    .show();
-                        } finally {
-                            try {
-                                output.close();
-                            } catch (IOException e) {
-                                Toast.makeText(Main.this, e.getMessage(), Toast.LENGTH_SHORT)
-                                        .show();
-                            }
-                        }
-                    }
-                }
-            }
-        }).start();
-    }
-
-    private File getFile(final String suffix) {
-        Time time = new Time();
-        time.setToNow();
-        return new File(Environment.getExternalStorageDirectory(), time.format("%Y%m%d%H%M%S") + "." + suffix);
-    }
 }

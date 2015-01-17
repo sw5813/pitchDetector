@@ -48,13 +48,17 @@ uses-permission#android.permission.RECORD_AUDIO
 ADDED from AndroidManifest.xml:15:5
 	android:name
 		ADDED from AndroidManifest.xml:15:22
-supports-screens
+uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
 ADDED from AndroidManifest.xml:16:5
+	android:name
+		ADDED from AndroidManifest.xml:16:22
+supports-screens
+ADDED from AndroidManifest.xml:17:5
 	android:largeScreens
-		ADDED from AndroidManifest.xml:18:23
-	android:anyDensity
 		ADDED from AndroidManifest.xml:19:23
+	android:anyDensity
+		ADDED from AndroidManifest.xml:20:23
 	android:normalScreens
-		ADDED from AndroidManifest.xml:17:23
+		ADDED from AndroidManifest.xml:18:23
 	android:smallScreens
-		ADDED from AndroidManifest.xml:16:23
+		ADDED from AndroidManifest.xml:17:23

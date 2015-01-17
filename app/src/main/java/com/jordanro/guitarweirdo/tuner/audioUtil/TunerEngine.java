@@ -21,6 +21,7 @@ public class TunerEngine extends Thread{
     private static final int[] BUFFERSIZE_PER_SAMPLE_RATE = { 8*1024, 4*1024 , 16*1024, 32*1024};
 
     public double currentFrequency = 0.0;
+    public double currentVolume = 0.0;
 
     int SAMPLE_RATE = 8000;
     int READ_BUFFERSIZE =  4*1024;
@@ -69,12 +70,19 @@ public class TunerEngine extends Thread{
         while ( (n = targetDataLine_.read(bufferRead, 0,READ_BUFFERSIZE)) > 0 ) {
 //            l = System.currentTimeMillis();
             currentFrequency = processSampleData(bufferRead,SAMPLE_RATE);
+            double sum = 0;
+            for (int i = 0; i < n; i++) {
+                sum += bufferRead[i] * bufferRead[i];
+            }
+            if (n > 0) {
+                currentVolume = sum / n;
+            }
 //            System.out.println("process time  = " + (System.currentTimeMillis() - l));
-            if(currentFrequency > 0){
+            if(currentFrequency > 0 && currentVolume > 2800){
                 mHandler.post(callback);
                 try {
                     targetDataLine_.stop();
-                    Thread.sleep(20);
+                    Thread.sleep(10);
                     targetDataLine_.startRecording();
                 } catch (InterruptedException e) {
 //                    e.printStackTrace();
