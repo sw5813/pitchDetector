@@ -15,6 +15,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.view.View;
 import android.view.animation.Animation;
 import android.widget.ImageView;
@@ -66,6 +69,8 @@ public class Main extends Activity {
     ImageView toggleTuner;
     boolean firstTime = true;
 
+    private SpeechRecognizer sr;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -90,6 +95,55 @@ public class Main extends Activity {
         current_note = (TextView) findViewById(R.id.current_note);
         next_note = (TextView) findViewById(R.id.next_note);
 
+        sr = SpeechRecognizer.createSpeechRecognizer(this);
+        sr.setRecognitionListener(new RecognitionListener() {
+            @Override
+            public void onReadyForSpeech(Bundle bundle) {
+                System.out.println("READY FOR PEECH");
+
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+                System.out.println("SPEECH BEGAN");
+            }
+
+            @Override
+            public void onRmsChanged(float v) {
+
+            }
+
+            @Override
+            public void onBufferReceived(byte[] bytes) {
+
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+                System.out.println("SPEECH ENDED");
+            }
+
+            @Override
+            public void onError(int i) {
+
+            }
+
+            @Override
+            public void onResults(Bundle bundle) {
+                System.out.println("SPEECH RESULTS");
+            }
+
+            @Override
+            public void onPartialResults(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onEvent(int i, Bundle bundle) {
+
+            }
+        });
+
 		toggleTuner = (ImageView)findViewById(R.id.toggle_tuner);
 		toggleTuner.setOnClickListener(new View.OnClickListener() {
             boolean start = true;
@@ -100,9 +154,13 @@ public class Main extends Activity {
                 if (firstTime) {
                     TextView instructions = (TextView) findViewById(R.id.instructions);
                     instructions.setVisibility(View.GONE);
+                    current_note.setText(NAME[noteslist.get(0) + 1]);
+                    next_note.setText(NAME[noteslist.get(1)+1]);
+                    prev_note.setText("");
                 }
             }
 		});
+
     }
 
     public void onStart(){
@@ -136,6 +194,8 @@ public class Main extends Activity {
                 if(currentLayer != null){
                     currentLayer.setTextColor(0XFFFFCC33);
                 }
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                sr.startListening(intent);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -148,6 +208,7 @@ public class Main extends Activity {
                 currentLayer.setTextColor(0XCCFFCC33);
             }
             toggleTuner.setImageResource(R.drawable.start);
+            sr.stopListening();
         }
 
     }
@@ -210,10 +271,6 @@ public class Main extends Activity {
             centerV.setVisibility(View.VISIBLE);
             rightV.setVisibility(View.VISIBLE);
             firstUpdate = false;
-
-            current_note.setText(NAME[noteslist.get(0) + 1]);
-            next_note.setText(NAME[noteslist.get(1)+1]);
-            prev_note.setText("");
         }
 
         // show tuner thing
@@ -230,14 +287,13 @@ public class Main extends Activity {
         int frameShift = note - currentFrameIndex;
         if (note > currentFrameIndex) {
             currentFrameIndex = note;
-
         } else if (note < currentFrameIndex) {
             currentFrameIndex = note;
         }
 
         // Check if the note played is correct
         double ideal_frequency = FREQUENCIES[noteslist.get(0)];
-        if (frequency < ideal_frequency + 50 || frequency < ideal_frequency - 50) {
+        if (frequency < ideal_frequency + 40 || frequency < ideal_frequency - 40) {
             if (prev_note.getText() != "") { noteslist.remove(0); }
             // switch notes
             next_note.setText(NAME[noteslist.get(2)+1]);
@@ -246,13 +302,15 @@ public class Main extends Activity {
         }
 
         // check for pause and new note
-        if (frequency < ideal_frequency + 200 || frequency > ideal_frequency - 200) {
+        if (frequency >= 180 && frequency <= 1600 && (frequency < ideal_frequency + 200 || frequency > ideal_frequency - 200)) {
             // sendToServer(index, new_note);
             current_note.setTextColor(getResources().getColor(R.color.red));
             Handler handler = new Handler();
             handler.postDelayed(new Runnable(){
                 public void run() {
                     current_note.setTextColor(getResources().getColor(R.color.white));
+                    System.out.println(NAME[currentFrameIndex+1]);
+                    //current_note.setText();
                 }
             }, 500);
         }

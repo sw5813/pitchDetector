@@ -18,7 +18,7 @@ public class TunerEngine extends Thread{
 
     public double currentFrequency = 0.0;
     public double currentVolume = 0.0;
-    public double ambience = 20000000;
+    public double ambience = 50000000;
     boolean firstTime = true;
 
     int SAMPLE_RATE = 44100;
@@ -55,7 +55,7 @@ public class TunerEngine extends Thread{
         while ( (n = targetDataLine_.read(bufferRead, 0, READ_BUFFERSIZE)) > 0 ) {
 //            l = System.currentTimeMillis();
             currentFrequency = processSampleData(bufferRead,SAMPLE_RATE)/2;
-            //System.out.println("frequency: " + currentFrequency);
+            System.out.println("frequency: " + currentFrequency);
 
             double sum = 0;
             int readSize = targetDataLine_.read(mBuffer, 0, mBuffer.length);
@@ -69,9 +69,7 @@ public class TunerEngine extends Thread{
 
             // set
             if (firstTime) {
-                //System.out.println("ambience: " + ambience);
-                //System.out.println("currentVolume: " + currentVolume);
-                setAmbience(currentVolume + 2500000);
+                setAmbience(currentVolume + 4500000);
                 firstTime = false;
             }
 
@@ -83,9 +81,6 @@ public class TunerEngine extends Thread{
                 } catch (InterruptedException e) {
 //                    e.printStackTrace();
                 }
-            } else if (currentVolume < ambience) {
-                currentFrequency = 0;
-                mHandler.post(callback);
             }
         }
 
