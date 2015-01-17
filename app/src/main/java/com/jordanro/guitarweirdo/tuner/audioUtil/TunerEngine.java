@@ -24,8 +24,10 @@ public class TunerEngine extends Thread{
     public double currentFrequency = 0.0;
     public double currentVolume = 0.0;
 
-    int SAMPLE_RATE = 8000;
-    int READ_BUFFERSIZE =  4*1024;
+    int SAMPLE_RATE = 44100;
+    int READ_BUFFERSIZE = 32*1024;
+
+    private short[] mBuffer;
 
     AudioRecord targetDataLine_;
 
@@ -39,6 +41,11 @@ public class TunerEngine extends Thread{
     }
 
     private void initAudioRecord(){
+        int bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT);
+        mBuffer = new short[bufferSize];
+        targetDataLine_ = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
+        /*
         int counter = 0;
         for(int sampleRate : OPT_SAMPLE_RATES){ 
             initAudioRecord(sampleRate);
@@ -49,40 +56,42 @@ public class TunerEngine extends Thread{
                 break;
             }
             counter++;
-        }
+        }*/
     }
-
+    //unused
     private void initAudioRecord(int sampleRate){
         targetDataLine_ =  new AudioRecord(
                 MediaRecorder.AudioSource.MIC,
                 sampleRate,
-                android.media.AudioFormat.CHANNEL_CONFIGURATION_MONO,
-                android.media.AudioFormat.ENCODING_PCM_16BIT ,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT ,
                 sampleRate*6
         );
     }
 
     byte[] bufferRead;
 //    long l;
-    public void run(){       // fft
+    public void run() {
 
         targetDataLine_.startRecording();
         bufferRead = new byte[READ_BUFFERSIZE];
         int n = -1;
-        while ( (n = targetDataLine_.read(bufferRead, 0,READ_BUFFERSIZE)) > 0 ) {
+        while ( (n = targetDataLine_.read(bufferRead, 0, READ_BUFFERSIZE)) > 0 ) {
 //            l = System.currentTimeMillis();
             currentFrequency = processSampleData(bufferRead,SAMPLE_RATE)/2;
+            System.out.println("frequency: " + currentFrequency);
 
             double sum = 0;
-            for (int i = 0; i < n; i++) {
-                sum += bufferRead[i] * bufferRead[i];
+            int readSize = targetDataLine_.read(mBuffer, 0, mBuffer.length);
+            for (int i = 0; i < readSize; i++) {
+                sum += mBuffer[i] * mBuffer[i];
             }
-            if (n > 0) {
-                currentVolume = sum / n;
-                System.out.println("volume: " + currentVolume);
+            if (readSize > 0) {
+                currentVolume = sum/readSize;
+                System.out.println("amplitude: " + currentVolume);
             }
 //            System.out.println("process time  = " + (System.currentTimeMillis() - l));
-            if(currentFrequency >= 190 && currentFrequency <= 1580 && currentVolume > 3000) {
+            if(currentFrequency >= 180 && currentFrequency <= 1600 && currentVolume > 2000000) {
                 mHandler.post(callback);
                 try {
                     Thread.sleep(1);

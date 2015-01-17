@@ -34,11 +34,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * User: Yarden
- * Date: Dec 24, 2009
- * Time: 6:27:14 PM
- */
 public class Main extends Activity {
     private static final double[] FREQUENCIES = { 196, 207.65, 220, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98};
     private static final String[] NAME        = {"","G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "D#",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",   "G",""};
@@ -48,7 +43,6 @@ public class Main extends Activity {
     final Runnable callback = new Runnable() {
         public void run() {
             updateUI(tuner.currentFrequency);
-//            System.out.println("tuner.currentFrequency = " + tuner.currentFrequency);
         }
     };
 
@@ -61,9 +55,9 @@ public class Main extends Activity {
     Button toggleTuner;
     String tuner_on,tuner_off;
 
-    ArrayList<String> noteslist = new ArrayList<String>();
+    ArrayList<Integer> noteslist = new ArrayList<Integer>();
 
-    private String current_note = "C";
+    private int current_note = 0;
 
 
     @Override
@@ -146,15 +140,16 @@ public class Main extends Activity {
 
     private void sendToServer() {
         noteslist.add(current_note);
-        System.out.println(current_note);
-        System.out.println("volume: " + tuner.currentVolume);
         TextView notes = (TextView)findViewById(R.id.notes);
         notes.setText(noteslist.toString());
+
+        TextView finalnotes = (TextView)findViewById(R.id.finalnotes);
+
         // Create playlist with EchoNest Api
         /*
         RequestParams en_params = new RequestParams();
         en_params.put("note", note);
-        EchoNestApi.get("song/search", en_params, new JsonHttpResponseHandler() {
+        ServerApi.post("song/search", en_params, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 super.onSuccess(statusCode, headers, response);
@@ -200,7 +195,7 @@ public class Main extends Activity {
 
             resetButton.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View view) {
-                    noteslist = new ArrayList<String>();
+                    noteslist = new ArrayList<Integer>();
                 }
             });
         }
@@ -224,12 +219,13 @@ public class Main extends Activity {
             currentFrameIndex = note;
         }
 
-        current_note = NAME[currentFrameIndex + 1];
+        current_note = currentFrameIndex;
         int last_index = noteslist.size() - 1;
         if (last_index == -1) {
             sendToServer();
         } else {
-            if ((noteslist.get(last_index) != current_note) && (noteslist.get(last_index) != NAME[currentFrameIndex]) && (noteslist.get(last_index) != NAME[currentFrameIndex + 2])) {
+            int previous_freq = noteslist.get(last_index);
+            if (noteslist.get(last_index) != current_note && (frequency < previous_freq-10 || frequency > previous_freq+10)) {
                 sendToServer();
             }
         }

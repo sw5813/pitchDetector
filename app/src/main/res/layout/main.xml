@@ -78,4 +78,13 @@
             android:text="test"
             android:textColor="#FFFFFF" />
     </LinearLayout>
+    <TextView
+        android:id="@+id/finalnotes"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="100dp"
+        android:textSize="20sp"
+        android:text="test"
+        android:textColor="#FFFFFF" />
 </RelativeLayout>
