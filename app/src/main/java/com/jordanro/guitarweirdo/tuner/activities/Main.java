@@ -2,12 +2,16 @@ package com.jordanro.guitarweirdo.tuner.activities;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -28,6 +32,7 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -40,7 +45,7 @@ import java.util.List;
 
 public class Main extends Activity {
     private static final double[] FREQUENCIES = { 196, 207.65, 220, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98};
-    private static final String[] NAME        = {"","G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "D#",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",   "G",""};
+    private static final String[] NAME        = {"","G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "E",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",   "G",""};
     ArrayList<Integer> noteslist = new ArrayList<Integer>();
 
     TunerEngine tuner;
@@ -59,6 +64,7 @@ public class Main extends Activity {
     public static final int DEFAULT_ALPHA_DURATION = 70;
 
     ImageView toggleTuner;
+    boolean firstTime = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -90,9 +96,14 @@ public class Main extends Activity {
             public void onClick(View view) {
                 toggleTunerState(start);
                 start = !start;
+
+                if (firstTime) {
+                    TextView instructions = (TextView) findViewById(R.id.instructions);
+                    instructions.setVisibility(View.GONE);
+                }
             }
 		});
-	}
+    }
 
     public void onStart(){
         super.onStart();
@@ -200,7 +211,7 @@ public class Main extends Activity {
             rightV.setVisibility(View.VISIBLE);
             firstUpdate = false;
 
-            current_note.setText(NAME[noteslist.get(0)+1]);
+            current_note.setText(NAME[noteslist.get(0) + 1]);
             next_note.setText(NAME[noteslist.get(1)+1]);
             prev_note.setText("");
         }
@@ -231,7 +242,7 @@ public class Main extends Activity {
             // switch notes
             next_note.setText(NAME[noteslist.get(2)+1]);
             prev_note.setText(NAME[noteslist.get(0)+1]);
-            current_note.setText(NAME[noteslist.get(1)+1]);
+            current_note.setText(NAME[noteslist.get(1) + 1]);
         }
 
         // check for pause and new note

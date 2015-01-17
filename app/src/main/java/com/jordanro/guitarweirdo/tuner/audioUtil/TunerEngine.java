@@ -5,11 +5,6 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Handler;
 
-/**
- * User: Yarden
- * Date: Oct 19, 2009
- * Time: 10:48:47 PM
- */
 public class TunerEngine extends Thread{
 
     static{
@@ -23,6 +18,8 @@ public class TunerEngine extends Thread{
 
     public double currentFrequency = 0.0;
     public double currentVolume = 0.0;
+    public double ambience = 20000000;
+    boolean firstTime = true;
 
     int SAMPLE_RATE = 44100;
     int READ_BUFFERSIZE = 32*1024;
@@ -33,6 +30,8 @@ public class TunerEngine extends Thread{
 
     final Handler mHandler;
     Runnable callback;
+
+    public void setAmbience(double number) { ambience = number; }
 
     public TunerEngine(Handler mHandler,Runnable callback) {
         this.mHandler = mHandler;
@@ -45,41 +44,18 @@ public class TunerEngine extends Thread{
                 AudioFormat.ENCODING_PCM_16BIT);
         mBuffer = new short[bufferSize];
         targetDataLine_ = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-        /*
-        int counter = 0;
-        for(int sampleRate : OPT_SAMPLE_RATES){ 
-            initAudioRecord(sampleRate);
-            if(targetDataLine_.getState() == AudioRecord.STATE_INITIALIZED ){
-                SAMPLE_RATE = sampleRate;
-                READ_BUFFERSIZE = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT);
-                break;
-            }
-            counter++;
-        }*/
-    }
-    //unused
-    private void initAudioRecord(int sampleRate){
-        targetDataLine_ =  new AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT ,
-                sampleRate*6
-        );
     }
 
     byte[] bufferRead;
 //    long l;
     public void run() {
-
         targetDataLine_.startRecording();
         bufferRead = new byte[READ_BUFFERSIZE];
         int n = -1;
         while ( (n = targetDataLine_.read(bufferRead, 0, READ_BUFFERSIZE)) > 0 ) {
 //            l = System.currentTimeMillis();
             currentFrequency = processSampleData(bufferRead,SAMPLE_RATE)/2;
-            System.out.println("frequency: " + currentFrequency);
+            //System.out.println("frequency: " + currentFrequency);
 
             double sum = 0;
             int readSize = targetDataLine_.read(mBuffer, 0, mBuffer.length);
@@ -90,14 +66,26 @@ public class TunerEngine extends Thread{
                 currentVolume = sum/readSize;
                 System.out.println("amplitude: " + currentVolume);
             }
+
+            // set
+            if (firstTime) {
+                //System.out.println("ambience: " + ambience);
+                //System.out.println("currentVolume: " + currentVolume);
+                setAmbience(currentVolume + 2500000);
+                firstTime = false;
+            }
+
 //            System.out.println("process time  = " + (System.currentTimeMillis() - l));
-            if(currentFrequency >= 180 && currentFrequency <= 1600 && currentVolume > 15000000) {
+            if(currentFrequency >= 180 && currentFrequency <= 1600 && currentVolume > ambience) {
                 mHandler.post(callback);
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
 //                    e.printStackTrace();
                 }
+            } else if (currentVolume < ambience) {
+                currentFrequency = 0;
+                mHandler.post(callback);
             }
         }
 

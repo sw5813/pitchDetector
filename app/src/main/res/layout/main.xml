@@ -4,7 +4,8 @@
     android:layout_height="fill_parent"
     android:background="@color/background"
     >
-    <ImageView android:id="@+id/toggle_tuner"
+    <com.jordanro.guitarweirdo.tuner.FadeButton
+        android:id="@+id/toggle_tuner"
         android:layout_width="400dp"
         android:layout_height="150dp"
         android:layout_centerHorizontal="true"
@@ -62,6 +63,15 @@
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
     />
+    <TextView
+        android:id="@+id/instructions"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_margin="20dp"
+        android:layout_centerHorizontal="true"
+        android:textSize="40sp"
+        android:text="@string/instructions"
+        android:textColor="#FFFFFF" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -72,7 +82,7 @@
             android:layout_height="200dp"
             android:layout_margin="10dp"
             android:textSize="100sp"
-            android:text="C"
+            android:text=""
             android:textColor="#FFFFFF" />
         <TextView
             android:id="@+id/current_note"
@@ -80,7 +90,7 @@
             android:layout_height="200dp"
             android:layout_margin="10dp"
             android:textSize="150sp"
-            android:text="G"
+            android:text=""
             android:textColor="#FFFFFF" />
         <TextView
             android:id="@+id/next_note"
@@ -88,7 +98,7 @@
             android:layout_height="200dp"
             android:layout_margin="10dp"
             android:textSize="100sp"
-            android:text="D"
+            android:text=""
             android:textColor="#FFFFFF" />
     </LinearLayout>
 

@@ -17,4 +17,7 @@
     <string name="c_note">C</string>
     <string name="c_sharp_note">C#</string>
     <string name="d_note">D</string>
+
+    <string name="ok">OK</string>
+    <string name="instructions">Press start and begin playing!</string>
 </resources>
