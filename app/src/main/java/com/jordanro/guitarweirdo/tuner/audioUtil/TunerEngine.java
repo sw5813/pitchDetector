@@ -1,5 +1,6 @@
 package com.jordanro.guitarweirdo.tuner.audioUtil;
 
+import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Handler;
@@ -43,7 +44,8 @@ public class TunerEngine extends Thread{
             initAudioRecord(sampleRate);
             if(targetDataLine_.getState() == AudioRecord.STATE_INITIALIZED ){
                 SAMPLE_RATE = sampleRate;
-                READ_BUFFERSIZE = BUFFERSIZE_PER_SAMPLE_RATE[counter];
+                READ_BUFFERSIZE = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT);
                 break;
             }
             counter++;
@@ -69,21 +71,21 @@ public class TunerEngine extends Thread{
         int n = -1;
         while ( (n = targetDataLine_.read(bufferRead, 0,READ_BUFFERSIZE)) > 0 ) {
 //            l = System.currentTimeMillis();
-            currentFrequency = processSampleData(bufferRead,SAMPLE_RATE);
+            currentFrequency = processSampleData(bufferRead,SAMPLE_RATE)/2;
+
             double sum = 0;
             for (int i = 0; i < n; i++) {
                 sum += bufferRead[i] * bufferRead[i];
             }
             if (n > 0) {
                 currentVolume = sum / n;
+                System.out.println("volume: " + currentVolume);
             }
 //            System.out.println("process time  = " + (System.currentTimeMillis() - l));
-            if(currentFrequency > 0 && currentVolume > 2800){
+            if(currentFrequency >= 190 && currentFrequency <= 1580 && currentVolume > 3000) {
                 mHandler.post(callback);
                 try {
-                    //targetDataLine_.stop();
-                    Thread.sleep(10);
-                    //targetDataLine_.startRecording();
+                    Thread.sleep(1);
                 } catch (InterruptedException e) {
 //                    e.printStackTrace();
                 }
@@ -93,7 +95,7 @@ public class TunerEngine extends Thread{
     }
 
     public void close(){
-        targetDataLine_.stop();
+        //targetDataLine_.stop();
         targetDataLine_.release();
     }
 

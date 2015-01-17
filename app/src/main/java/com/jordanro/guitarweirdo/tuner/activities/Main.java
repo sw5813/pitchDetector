@@ -41,7 +41,7 @@ import java.util.List;
  */
 public class Main extends Activity {
     private static final double[] FREQUENCIES = { 196, 207.65, 220, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98};
-    private static final String[] NAME        = {  "G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "D#",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",    "G"};
+    private static final String[] NAME        = {"","G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "D#",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",   "G",""};
 
     TunerEngine tuner;
     final Handler mHandler = new Handler();
@@ -88,9 +88,6 @@ public class Main extends Activity {
                 start = !start;
             }
 		});
-
-        // Volume Detection
-
 	}
 
     public void onStart(){
@@ -193,47 +190,51 @@ public class Main extends Activity {
     }
 
     public void updateUI(double frequency){
-        if (frequency >= 196 && frequency <= 1567.98) {
-            if (firstUpdate) {
-                leftV.setVisibility(View.VISIBLE);
-                centerV.setVisibility(View.VISIBLE);
-                rightV.setVisibility(View.VISIBLE);
-                firstUpdate = false;
+        if (firstUpdate) {
+            leftV.setVisibility(View.VISIBLE);
+            centerV.setVisibility(View.VISIBLE);
+            rightV.setVisibility(View.VISIBLE);
+            firstUpdate = false;
 
-                Button resetButton = (Button)findViewById(R.id.reset);
+            Button resetButton = (Button)findViewById(R.id.reset);
 
-                resetButton.setOnClickListener(new View.OnClickListener() {
-                    public void onClick(View view) {
-                        noteslist = new ArrayList<String>();
-                    }
-                });
-            }
-            System.out.println("frequency: " + frequency);
-            //frequency = normaliseFreq(frequency);
-            int note = closestNote(frequency);
-            double matchFreq = FREQUENCIES[note];
-            int offset = 0;
-
-            if (frequency < matchFreq) {
-                double prevFreq = FREQUENCIES[note - 1];
-                offset = (int) (-(frequency - matchFreq) / (prevFreq - matchFreq) / 0.2);
-            } else {
-                double nextFreq = FREQUENCIES[note + 1];
-                offset = (int) ((frequency - matchFreq) / (nextFreq - matchFreq) / 0.2);
-            }
-            int frameShift = note - currentFrameIndex;
-            if (note > currentFrameIndex) {
-                currentFrameIndex = note;
-
-            } else if (note < currentFrameIndex) {
-                currentFrameIndex = note;
-            }
-
-            current_note = NAME[currentFrameIndex];
-            sendToServer();
-
-            moveGauge(frameShift, offset);
+            resetButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View view) {
+                    noteslist = new ArrayList<String>();
+                }
+            });
         }
+        System.out.println("frequency: " + frequency);
+        int note = closestNote(frequency);
+        double matchFreq = FREQUENCIES[note];
+        int offset = 0;
+
+        if (frequency < matchFreq) {
+            double prevFreq = (note == 0) ? 185 : FREQUENCIES[note - 1];
+            offset = (int) (-(frequency - matchFreq) / (prevFreq - matchFreq) / 0.2);
+        } else {
+            double nextFreq = (note == FREQUENCIES.length - 1) ? 1662 : FREQUENCIES[note + 1];
+            offset = (int) ((frequency - matchFreq) / (nextFreq - matchFreq) / 0.2);
+        }
+        int frameShift = note - currentFrameIndex;
+        if (note > currentFrameIndex) {
+            currentFrameIndex = note;
+
+        } else if (note < currentFrameIndex) {
+            currentFrameIndex = note;
+        }
+
+        current_note = NAME[currentFrameIndex + 1];
+        int last_index = noteslist.size() - 1;
+        if (last_index == -1) {
+            sendToServer();
+        } else {
+            if ((noteslist.get(last_index) != current_note) && (noteslist.get(last_index) != NAME[currentFrameIndex]) && (noteslist.get(last_index) != NAME[currentFrameIndex + 2])) {
+                sendToServer();
+            }
+        }
+
+        moveGauge(frameShift, offset);
     }
 
     TextView currentLayer;
@@ -245,12 +246,10 @@ public class Main extends Activity {
             currentLayer = null;
         }
         if(frameShift != 0){
-            if (currentFrameIndex != 0) {
-                leftV.setText(NAME[currentFrameIndex - 1]);
-            } else if (currentFrameIndex != NAME.length) {
-                rightV.setText(NAME[currentFrameIndex+1]);
-            }
-            centerV.setText(NAME[currentFrameIndex]);
+            leftV.setText(NAME[currentFrameIndex]);
+            centerV.setText(NAME[currentFrameIndex+1]);
+            rightV.setText(NAME[currentFrameIndex+2]);
+
 
         }
         int currentOffset = offset*15;
@@ -263,17 +262,6 @@ public class Main extends Activity {
         animator.scrollBy(-1*previousOffset,0);
         animator.scrollBy(currentOffset,0);
         previousOffset = currentOffset;
-    }
-
-    private static double normaliseFreq(double hz) {
-        // get hz into a standard range to make things easier to deal with
-        while ( hz < 82.41 ) {
-            hz = 2*hz;
-        }
-        while ( hz > 164.81 ) {
-            hz = 0.5*hz;
-        }
-        return hz;
     }
 
     private static int closestNote(double hz) {
