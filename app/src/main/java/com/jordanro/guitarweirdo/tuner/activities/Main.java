@@ -1,7 +1,13 @@
 package com.jordanro.guitarweirdo.tuner.activities;
 
 import android.app.Activity;
+import android.content.Context;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.view.animation.Animation;
@@ -11,6 +17,22 @@ import android.media.MediaPlayer;
 import com.jordanro.guitarweirdo.tuner.R;
 import com.jordanro.guitarweirdo.tuner.uiUtil.AnimationFactory;
 import com.jordanro.guitarweirdo.tuner.audioUtil.TunerEngine;
+import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+import android.text.format.Time;
+import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * User: Yarden
@@ -33,11 +55,21 @@ public class Main extends Activity {
 	View animator;
     TextView leftV,centerV,rightV;
     boolean firstUpdate;
-    public static final int DEAFULT_TRANSFORM_DURATION = 150;
-    public static final int DEAFULT_ALPHA_DURATION = 70;
+    public static final int DEFAULT_TRANSFORM_DURATION = 150;
+    public static final int DEFAULT_ALPHA_DURATION = 70;
 
     Button toggleTuner;
     String tuner_on,tuner_off;
+
+    ArrayList<String> noteslist = new ArrayList<String>();
+
+    // Volume Detection
+    public static final int SAMPLE_RATE = 16000;
+
+    private AudioRecord mRecorder;
+    private File mRecording;
+    private short[] mBuffer;
+    private boolean mIsRecording = false;
 
 
     @Override
@@ -61,10 +93,15 @@ public class Main extends Activity {
             public void onClick(View view) {
                 toggleTunerState(start);
                 start = !start;
+                mIsRecording = !mIsRecording;
+                mRecorder.startRecording();
+                mRecording = getFile("raw");
+                startBufferedWrite(mRecording);
             }
-
-
 		});
+
+        // Volume Detection
+        initRecorder();
 
 	}
 
@@ -80,6 +117,14 @@ public class Main extends Activity {
             tuner.close();
         }
         super.onPause();
+    }
+
+    private void initRecorder() {
+        int bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT);
+        mBuffer = new short[bufferSize];
+        mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT, bufferSize);
     }
 
     int defaultColor;
@@ -115,13 +160,56 @@ public class Main extends Activity {
         }
 
     }
-    Animation fadeIn  = AnimationFactory.getAnimation(AnimationFactory.FADE_IN,DEAFULT_ALPHA_DURATION);
+    Animation fadeIn  = AnimationFactory.getAnimation(AnimationFactory.FADE_IN,DEFAULT_ALPHA_DURATION);
     Animation fadeIn50  = AnimationFactory.getAnimation(AnimationFactory.FADE_IN_50,300);
     Animation fadeOut  = AnimationFactory.getAnimation(AnimationFactory.FADE_OUT,10);
     Animation fadeOut50  = AnimationFactory.getAnimation(AnimationFactory.FADE_OUT_50,300);
     int previousOffset = 0;
     int currentFrameIndex = 1;
     int numFrames = 12;
+
+    private void sendToServer(String note) {
+        noteslist.add(note);
+        TextView notes = (TextView)findViewById(R.id.notes);
+        notes.setText(noteslist.toString());
+        // Create playlist with EchoNest Api
+        /*
+        RequestParams en_params = new RequestParams();
+        en_params.put("note", note);
+        EchoNestApi.get("song/search", en_params, new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                super.onSuccess(statusCode, headers, response);
+
+                // extract names and artists from echonest
+                try {
+                    JSONArray songs = response.getJSONObject("response").getJSONArray("songs");
+                    for (int i = 0; i < songs.length(); i++) {
+                        JSONObject song = songs.getJSONObject(i);
+                        String[] potential_song = {song.get("title").toString(), song.get("artist_name").toString()};
+                        en_potential_songs.add(potential_song);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                // Determine which of those songs are available on Spotify
+                for (int i = 0; i < en_potential_songs.size(); i++) {
+                    String title = en_potential_songs.get(i)[0];
+                    String artist = en_potential_songs.get(i)[1];
+                    checkSpotifyAvailability(title, artist);
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String errorResponse, Throwable e) {
+                super.onFailure(statusCode, headers, errorResponse, e);
+                System.out.println("ECHONEST ERROR" + errorResponse);
+            }
+        });
+*/
+
+    }
 
     public void updateUI(double frequency){
 
@@ -152,7 +240,9 @@ public class Main extends Activity {
         else if(note < currentFrameIndex){
             currentFrameIndex = note;
         }
-        moveGauge(frameShift,offset);
+
+        sendToServer(NAME[currentFrameIndex]);
+        moveGauge(frameShift, offset);
     }
 
     TextView currentLayer;
@@ -207,5 +297,56 @@ public class Main extends Activity {
 
     private static void playIntro(android.content.Context context){
         MediaPlayer.create(context, R.raw.subbacultcha).start();
+    }
+
+    private void startBufferedWrite(final File file) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DataOutputStream output = null;
+                try {
+                    output = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
+                    while (mIsRecording) {
+                        double sum = 0;
+                        int readSize = mRecorder.read(mBuffer, 0, mBuffer.length);
+                        for (int i = 0; i < readSize; i++) {
+                            output.writeShort(mBuffer[i]);
+                            sum += mBuffer[i] * mBuffer[i];
+                        }
+                        if (readSize > 0) {
+                            final double amplitude = sum / readSize;
+                            if (amplitude > 3000000) {
+                                System.out.println(amplitude);
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    Toast.makeText(Main.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                } finally {
+                    System.out.println(0);
+                    if (output != null) {
+                        try {
+                            output.flush();
+                        } catch (IOException e) {
+                            Toast.makeText(Main.this, e.getMessage(), Toast.LENGTH_SHORT)
+                                    .show();
+                        } finally {
+                            try {
+                                output.close();
+                            } catch (IOException e) {
+                                Toast.makeText(Main.this, e.getMessage(), Toast.LENGTH_SHORT)
+                                        .show();
+                            }
+                        }
+                    }
+                }
+            }
+        }).start();
+    }
+
+    private File getFile(final String suffix) {
+        Time time = new Time();
+        time.setToNow();
+        return new File(Environment.getExternalStorageDirectory(), time.format("%Y%m%d%H%M%S") + "." + suffix);
     }
 }

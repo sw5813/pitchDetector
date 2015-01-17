@@ -19,12 +19,15 @@ public final class R {
         public static final int gauge=0x7f020000;
         public static final int gauge_bg=0x7f020001;
         public static final int icon=0x7f020002;
+        public static final int progressbar=0x7f020003;
     }
     public static final class id {
         public static final int center_note=0x7f070003;
         public static final int gauge=0x7f070005;
         public static final int gauge_background=0x7f070001;
         public static final int left_note=0x7f070002;
+        public static final int notes=0x7f070006;
+        public static final int progressBar=0x7f070007;
         public static final int right_note=0x7f070004;
         public static final int toggle_tuner=0x7f070000;
     }
