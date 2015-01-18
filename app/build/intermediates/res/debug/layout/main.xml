@@ -68,7 +68,6 @@
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:layout_margin="20dp"
-        android:layout_centerHorizontal="true"
         android:textSize="40sp"
         android:text="@string/instructions"
         android:textColor="#FFFFFF" />

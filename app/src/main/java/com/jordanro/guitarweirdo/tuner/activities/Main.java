@@ -1,6 +1,5 @@
 package com.jordanro.guitarweirdo.tuner.activities;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -22,9 +21,8 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Button;
-import android.media.MediaPlayer;
 import com.jordanro.guitarweirdo.tuner.R;
+import com.jordanro.guitarweirdo.tuner.api.ServerApi;
 import com.jordanro.guitarweirdo.tuner.uiUtil.AnimationFactory;
 import com.jordanro.guitarweirdo.tuner.audioUtil.TunerEngine;
 import com.loopj.android.http.JsonHttpResponseHandler;
@@ -32,10 +30,10 @@ import com.loopj.android.http.RequestParams;
 import android.text.format.Time;
 import android.widget.Toast;
 
+import org.apache.http.Header;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -47,8 +45,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Main extends Activity {
-    private static final double[] FREQUENCIES = { 196, 207.65, 220, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98};
-    private static final String[] NAME        = {"","G",  "G#", "A",  "A#"  , "B" ,   "C",    "C#",    "D#",  "E",   "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",    "E",    "F",   "F#",    "G",   "G#",   "A",    "A#",    "B",     "C",    "C#",    "D",     "D#",    "E",     "F",     "F#",   "G",""};
+    private static final double[] FREQUENCIES = { 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98, 1661.22, 1760, 1864.66, 1975.53, 2093};
+    private static final String[] NAME        = {"","C",    "C#",   "D",    "D#",   "E",    "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",   "E",    "F",   "F#",    "G",   "G#",    "A",    "A#",   "B",    "C",    "C#",     "D",     "D#",    "E",     "F",     "F#",    "G",     "G#",   "A",   "A#",    "B",    "C", ""};
     ArrayList<Integer> noteslist = new ArrayList<Integer>();
 
     TunerEngine tuner;
@@ -76,13 +74,7 @@ public class Main extends Activity {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        noteslist.add(5);
-        noteslist.add(6);
-        noteslist.add(7);
-        noteslist.add(8);
-        noteslist.add(9);
-        noteslist.add(10);
-        noteslist.add(11);
+        getMusic();
 
         animator = findViewById(R.id.gauge_background);
 
@@ -95,72 +87,7 @@ public class Main extends Activity {
         current_note = (TextView) findViewById(R.id.current_note);
         next_note = (TextView) findViewById(R.id.next_note);
 
-        sr = SpeechRecognizer.createSpeechRecognizer(this);
-        sr.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle bundle) {
-                System.out.println("READY FOR PEECH");
-
-            }
-
-            @Override
-            public void onBeginningOfSpeech() {
-                System.out.println("SPEECH BEGAN");
-            }
-
-            @Override
-            public void onRmsChanged(float v) {
-
-            }
-
-            @Override
-            public void onBufferReceived(byte[] bytes) {
-
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-                System.out.println("SPEECH ENDED");
-            }
-
-            @Override
-            public void onError(int i) {
-
-            }
-
-            @Override
-            public void onResults(Bundle bundle) {
-                System.out.println("SPEECH RESULTS");
-            }
-
-            @Override
-            public void onPartialResults(Bundle bundle) {
-
-            }
-
-            @Override
-            public void onEvent(int i, Bundle bundle) {
-
-            }
-        });
-
-		toggleTuner = (ImageView)findViewById(R.id.toggle_tuner);
-		toggleTuner.setOnClickListener(new View.OnClickListener() {
-            boolean start = true;
-            public void onClick(View view) {
-                toggleTunerState(start);
-                start = !start;
-
-                if (firstTime) {
-                    TextView instructions = (TextView) findViewById(R.id.instructions);
-                    instructions.setVisibility(View.GONE);
-                    current_note.setText(NAME[noteslist.get(0) + 1]);
-                    next_note.setText(NAME[noteslist.get(1)+1]);
-                    prev_note.setText("");
-                }
-            }
-		});
-
+        initSpeechRecognition();
     }
 
     public void onStart(){
@@ -176,12 +103,74 @@ public class Main extends Activity {
         super.onPause();
     }
 
+    private void getMusic() {
+        pullfromServer(0);
+    }
+
     int defaultColor;
     private void initLayoutState() {
         animator.getBackground().setAlpha(127);
         firstUpdate = true;
     }
 
+    private void initTuner() {
+        toggleTuner = (ImageView)findViewById(R.id.toggle_tuner);
+        toggleTuner.setOnClickListener(new View.OnClickListener() {
+            boolean start = true;
+            public void onClick(View view) {
+                toggleTunerState(start);
+                start = !start;
+
+                if (firstTime) {
+                    TextView instructions = (TextView) findViewById(R.id.instructions);
+                    instructions.setVisibility(View.GONE);
+                    current_note.setText(NAME[noteslist.get(0) + 1]);
+                    next_note.setText(NAME[noteslist.get(1)+1]);
+                    prev_note.setText("");
+                }
+            }
+        });
+
+    }
+
+    public void initSpeechRecognition() {
+        sr = SpeechRecognizer.createSpeechRecognizer(this);
+        sr.setRecognitionListener(new RecognitionListener() {
+            @Override
+            public void onReadyForSpeech(Bundle bundle) {}
+
+            @Override
+            public void onBeginningOfSpeech() {
+                System.out.println("SPEECH BEGAN");
+            }
+
+            @Override
+            public void onRmsChanged(float v) {}
+
+            @Override
+            public void onBufferReceived(byte[] bytes) {}
+
+            @Override
+            public void onEndOfSpeech() {
+                System.out.println("SPEECH ENDED");
+            }
+
+            @Override
+            public void onError(int i) {}
+
+            @Override
+            public void onResults(Bundle bundle) {
+                System.out.println("SPEECH RESULTS");
+            }
+
+            @Override
+            public void onPartialResults(Bundle bundle) {}
+
+            @Override
+            public void onEvent(int i, Bundle bundle) {}
+        });
+        System.out.println("start listening to speech");
+    }
 
     public void toggleTunerState(boolean start){
         if(start){
@@ -196,6 +185,7 @@ public class Main extends Activity {
                 }
                 Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
                 sr.startListening(intent);
+                System.out.println("started listening to speech");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -208,7 +198,8 @@ public class Main extends Activity {
                 currentLayer.setTextColor(0XCCFFCC33);
             }
             toggleTuner.setImageResource(R.drawable.start);
-            sr.stopListening();
+            sr.cancel();
+            System.out.println("stop listening to speech");
         }
 
     }
@@ -219,51 +210,58 @@ public class Main extends Activity {
     int previousOffset = 0;
     int currentFrameIndex = 1;
 
-    private void sendToServer() {
-
-        // Send index + new note
-        /*
-        RequestParams en_params = new RequestParams();
-        en_params.put("note", note);
-        ServerApi.post("song/search", en_params, new JsonHttpResponseHandler() {
+    // get music and to populate noteslists
+    private void pullfromServer(int position) {
+        ServerApi.get("compose/" + position, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 super.onSuccess(statusCode, headers, response);
-
-                // extract names and artists from echonest
+                // pull in notes from the server
                 try {
-                    JSONArray songs = response.getJSONObject("response").getJSONArray("songs");
-                    for (int i = 0; i < songs.length(); i++) {
-                        JSONObject song = songs.getJSONObject(i);
-                        String[] potential_song = {song.get("title").toString(), song.get("artist_name").toString()};
-                        en_potential_songs.add(potential_song);
+                    JSONArray measures = response.getJSONArray("tab");
+                    for (int i = 0; i < measures.length(); i++) {
+                        JSONArray measure = measures.getJSONArray(i);
+                        for (int j = 0; j < measure.length(); j++) {
+                            JSONObject note = measure.getJSONObject(j);
+                            noteslist.add((int)note.get("note"));
+                        }
                     }
+                    System.out.println(noteslist.toString());
+                    initTuner();
                 } catch (JSONException e) {
                     e.printStackTrace();
-                }
-
-                // Determine which of those songs are available on Spotify
-                for (int i = 0; i < en_potential_songs.size(); i++) {
-                    String title = en_potential_songs.get(i)[0];
-                    String artist = en_potential_songs.get(i)[1];
-                    checkSpotifyAvailability(title, artist);
                 }
             }
 
             @Override
             public void onFailure(int statusCode, Header[] headers, String errorResponse, Throwable e) {
                 super.onFailure(statusCode, headers, errorResponse, e);
-                System.out.println("ECHONEST ERROR" + errorResponse);
+                System.out.println("SERVER ERROR" + errorResponse);
             }
         });
-*/
 
     }
 
-    private void pullfromServer() {
+    // Send index + new note- both from myo motion (delete all) and the android app
+    private void sendtoServer(String index) {
+        RequestParams params = new RequestParams();
+        params.put("index", index); //note: this needs to be the first note of a measure
+        ServerApi.post("restart/", params, new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                super.onSuccess(statusCode, headers, response);
+                // pull in notes from the server
+                System.out.println(response);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String errorResponse, Throwable e) {
+                super.onFailure(statusCode, headers, errorResponse, e);
+                System.out.println("SERVER ERROR" + errorResponse);
+            }
+        });
 
     }
-
 
     public void updateUI(double frequency){
         if (firstUpdate) {
@@ -293,7 +291,7 @@ public class Main extends Activity {
 
         // Check if the note played is correct
         double ideal_frequency = FREQUENCIES[noteslist.get(0)];
-        if (frequency < ideal_frequency + 40 || frequency < ideal_frequency - 40) {
+        if (frequency < ideal_frequency + 25 || frequency < ideal_frequency - 25) {
             if (prev_note.getText() != "") { noteslist.remove(0); }
             // switch notes
             next_note.setText(NAME[noteslist.get(2)+1]);
@@ -358,6 +356,11 @@ public class Main extends Activity {
         }
 //        minFreq = minFreq == 13 ? 1 : minFreq;
         return minFreq;
+    }
+
+    // arpeggio, delete
+    private void myoMotion() {
+        ServerApi.requestArpeggio();
     }
 
 }

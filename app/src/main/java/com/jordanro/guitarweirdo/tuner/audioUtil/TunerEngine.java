@@ -11,14 +11,11 @@ public class TunerEngine extends Thread{
         System.loadLibrary("FFT");
     }
 
-    public native double processSampleData(byte[] sample,int sampleRate);
-
-    private static final int[] OPT_SAMPLE_RATES           = { 11025 , 8000   ,  22050 , 44100  };
-    private static final int[] BUFFERSIZE_PER_SAMPLE_RATE = { 8*1024, 4*1024 , 16*1024, 32*1024};
+    public native double processSampleData(byte[] sample, int sampleRate);
 
     public double currentFrequency = 0.0;
     public double currentVolume = 0.0;
-    public double ambience = 50000000;
+    public double ambience = 70000000;
     boolean firstTime = true;
 
     int SAMPLE_RATE = 44100;
@@ -55,7 +52,7 @@ public class TunerEngine extends Thread{
         while ( (n = targetDataLine_.read(bufferRead, 0, READ_BUFFERSIZE)) > 0 ) {
 //            l = System.currentTimeMillis();
             currentFrequency = processSampleData(bufferRead,SAMPLE_RATE)/2;
-            System.out.println("frequency: " + currentFrequency);
+//            System.out.println("frequency: " + currentFrequency);
 
             double sum = 0;
             int readSize = targetDataLine_.read(mBuffer, 0, mBuffer.length);
@@ -64,12 +61,12 @@ public class TunerEngine extends Thread{
             }
             if (readSize > 0) {
                 currentVolume = sum/readSize;
-                System.out.println("amplitude: " + currentVolume);
+   //             System.out.println("amplitude: " + currentVolume);
             }
 
             // set
             if (firstTime) {
-                setAmbience(currentVolume + 4500000);
+                setAmbience(currentVolume + 6000000);
                 firstTime = false;
             }
 
