@@ -1,5 +1,7 @@
 package com.jordanro.guitarweirdo.tuner.api;
 
+import android.util.Log;
+
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.JsonHttpResponseHandler;
@@ -12,7 +14,7 @@ import org.json.JSONObject;
  * Created by swu on 1/16/15.
  */
 public class ServerApi {
-    private static final String BASE_URL = "http://104.131.4.23/";
+    private static final String BASE_URL = "http://arpeggio-rift.herokuapp.com/";
 
     private static AsyncHttpClient client = new AsyncHttpClient();
 
@@ -28,22 +30,5 @@ public class ServerApi {
 
     private static String getAbsoluteUrl(String relativeUrl) {
         return BASE_URL + relativeUrl;
-    }
-
-    // myo fist
-    public static void requestArpeggio() {
-        RequestParams params = new RequestParams();
-        client.post("arpeggio/", params, new JsonHttpResponseHandler() {
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-                super.onSuccess(statusCode, headers, response);
-            }
-
-            @Override
-            public void onFailure(int statusCode, Header[] headers, String errorResponse, Throwable e) {
-                super.onFailure(statusCode, headers, errorResponse, e);
-                System.out.println("SERVER ERROR" + errorResponse);
-            }
-        });
     }
 }

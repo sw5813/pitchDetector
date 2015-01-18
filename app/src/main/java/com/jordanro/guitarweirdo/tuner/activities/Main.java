@@ -17,6 +17,7 @@ import android.os.Handler;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.widget.ImageView;
@@ -27,6 +28,13 @@ import com.jordanro.guitarweirdo.tuner.uiUtil.AnimationFactory;
 import com.jordanro.guitarweirdo.tuner.audioUtil.TunerEngine;
 import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
+import com.thalmic.myo.AbstractDeviceListener;
+import com.thalmic.myo.DeviceListener;
+import com.thalmic.myo.Hub;
+import com.thalmic.myo.Myo;
+import com.thalmic.myo.Pose;
+import com.thalmic.myo.scanner.ScanActivity;
+
 import android.text.format.Time;
 import android.widget.Toast;
 
@@ -47,13 +55,14 @@ import java.util.List;
 public class Main extends Activity {
     private static final double[] FREQUENCIES = { 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77, 1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91, 1479.98, 1567.98, 1661.22, 1760, 1864.66, 1975.53, 2093};
     private static final String[] NAME        = {"","C",    "C#",   "D",    "D#",   "E",    "F",    "F#",    "G",   "G#"   , "A"  ,  "A#",   "B",   "C",    "C#",    "D",   "D#",   "E",    "F",   "F#",    "G",   "G#",    "A",    "A#",   "B",    "C",    "C#",     "D",     "D#",    "E",     "F",     "F#",    "G",     "G#",   "A",   "A#",    "B",    "C", ""};
-    ArrayList<Integer> noteslist = new ArrayList<Integer>();
+    ArrayList<ArrayList<Integer>> noteslist = new ArrayList<ArrayList<Integer>>();
 
     TunerEngine tuner;
     final Handler mHandler = new Handler();
     final Runnable callback = new Runnable() {
         public void run() {
             updateUI(tuner.currentFrequency);
+            System.out.println(tuner.currentFrequency);
         }
     };
 
@@ -69,12 +78,18 @@ public class Main extends Activity {
 
     private SpeechRecognizer sr;
 
+    public int current_measure_index;
+    public int current_note_index;
+
+    Hub hub;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
         getMusic();
+        sendtoServer(0,0);
 
         animator = findViewById(R.id.gauge_background);
 
@@ -87,8 +102,61 @@ public class Main extends Activity {
         current_note = (TextView) findViewById(R.id.current_note);
         next_note = (TextView) findViewById(R.id.next_note);
 
-        initSpeechRecognition();
+        current_measure_index = 0;
+        current_note_index = 0;
+
+        //Myo
+        hub = Hub.getInstance();
+        if (!hub.init(this)) {
+            Log.e("MYO", "Could not initialize the Hub.");
+            finish();
+            return;
+        }
+        hub.attachToAdjacentMyo();
+        hub.setLockingPolicy(Hub.LockingPolicy.STANDARD);
+        hub.addListener(mListener);
     }
+
+    private DeviceListener mListener = new AbstractDeviceListener() {
+        @Override
+        public void onConnect(Myo myo, long timestamp) {
+            Toast.makeText(getApplicationContext(), "Myo Connected!", Toast.LENGTH_SHORT).show();
+            Log.i("Myo", "Myo Connected");
+        }
+
+        @Override
+        public void onDisconnect(Myo myo, long timestamp) {
+            Toast.makeText(getApplicationContext(), "Myo Disconnected!", Toast.LENGTH_SHORT).show();
+            Log.i("Myo", "Myo Disconnected");
+        }
+
+        @Override
+        public void onPose(Myo myo, long timestamp, Pose pose) {
+            Toast.makeText(getApplicationContext(), "Pose: " + pose, Toast.LENGTH_SHORT).show();
+            Log.i("Myo", "Pose");
+
+            switch (pose) {
+                case UNKNOWN:
+                    break;
+                case REST:
+                    break;
+                case DOUBLE_TAP:
+                    break;
+                case FIST:
+                    requestArpeggio();
+                    break;
+                case WAVE_IN:
+                    sendtoServer(0,0);
+                    break;
+                case WAVE_OUT:
+                    sendtoServer(0,0);
+                    break;
+                case FINGERS_SPREAD:
+                    myo.unlock(Myo.UnlockType.HOLD);
+                    break;
+            }
+        }
+    };
 
     public void onStart(){
         super.onStart();
@@ -100,10 +168,13 @@ public class Main extends Activity {
         if(tuner != null && tuner.isAlive()){
             tuner.close();
         }
+        hub.removeListener(mListener);
         super.onPause();
     }
 
+    // listen for first note
     private void getMusic() {
+        System.out.println("getting music");
         pullfromServer(0);
     }
 
@@ -124,52 +195,13 @@ public class Main extends Activity {
                 if (firstTime) {
                     TextView instructions = (TextView) findViewById(R.id.instructions);
                     instructions.setVisibility(View.GONE);
-                    current_note.setText(NAME[noteslist.get(0) + 1]);
-                    next_note.setText(NAME[noteslist.get(1)+1]);
+                    current_note.setText(NAME[noteslist.get(0).get(0) + 1]);
+                    next_note.setText(NAME[noteslist.get(0).get(1)+1]);
                     prev_note.setText("");
                 }
             }
         });
 
-    }
-
-    public void initSpeechRecognition() {
-        sr = SpeechRecognizer.createSpeechRecognizer(this);
-        sr.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle bundle) {}
-
-            @Override
-            public void onBeginningOfSpeech() {
-                System.out.println("SPEECH BEGAN");
-            }
-
-            @Override
-            public void onRmsChanged(float v) {}
-
-            @Override
-            public void onBufferReceived(byte[] bytes) {}
-
-            @Override
-            public void onEndOfSpeech() {
-                System.out.println("SPEECH ENDED");
-            }
-
-            @Override
-            public void onError(int i) {}
-
-            @Override
-            public void onResults(Bundle bundle) {
-                System.out.println("SPEECH RESULTS");
-            }
-
-            @Override
-            public void onPartialResults(Bundle bundle) {}
-
-            @Override
-            public void onEvent(int i, Bundle bundle) {}
-        });
-        System.out.println("start listening to speech");
     }
 
     public void toggleTunerState(boolean start){
@@ -183,9 +215,6 @@ public class Main extends Activity {
                 if(currentLayer != null){
                     currentLayer.setTextColor(0XFFFFCC33);
                 }
-                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                sr.startListening(intent);
-                System.out.println("started listening to speech");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -198,8 +227,6 @@ public class Main extends Activity {
                 currentLayer.setTextColor(0XCCFFCC33);
             }
             toggleTuner.setImageResource(R.drawable.start);
-            sr.cancel();
-            System.out.println("stop listening to speech");
         }
 
     }
@@ -221,10 +248,12 @@ public class Main extends Activity {
                     JSONArray measures = response.getJSONArray("tab");
                     for (int i = 0; i < measures.length(); i++) {
                         JSONArray measure = measures.getJSONArray(i);
+                        ArrayList<Integer> measure_list = new ArrayList<Integer>();
                         for (int j = 0; j < measure.length(); j++) {
                             JSONObject note = measure.getJSONObject(j);
-                            noteslist.add((int)note.get("note"));
+                            measure_list.add((int)note.get("note"));
                         }
+                        noteslist.add(measure_list);
                     }
                     System.out.println(noteslist.toString());
                     initTuner();
@@ -243,15 +272,34 @@ public class Main extends Activity {
     }
 
     // Send index + new note- both from myo motion (delete all) and the android app
-    private void sendtoServer(String index) {
+    private void sendtoServer(int index, int new_note) {
+        System.out.println("myo sending to server");
         RequestParams params = new RequestParams();
         params.put("index", index); //note: this needs to be the first note of a measure
-        ServerApi.post("restart/", params, new JsonHttpResponseHandler() {
+        params.put("note", new_note);
+        ServerApi.post("restart", params, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 super.onSuccess(statusCode, headers, response);
                 // pull in notes from the server
                 System.out.println(response);
+                /*
+                // pull in notes from the server
+                try {
+                    JSONArray measures = response.getJSONArray("tab");
+                    for (int i = 0; i < measures.length(); i++) {
+                        JSONArray measure = measures.getJSONArray(i);
+                        ArrayList<Integer> measure_list = new ArrayList<Integer>();
+                        for (int j = 0; j < measure.length(); j++) {
+                            JSONObject note = measure.getJSONObject(j);
+                            measure_list.add((int)note.get("note"));
+                        }
+                        noteslist.add(measure_list);
+                    }
+                    initTuner();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }*/
             }
 
             @Override
@@ -290,29 +338,33 @@ public class Main extends Activity {
         }
 
         // Check if the note played is correct
-        double ideal_frequency = FREQUENCIES[noteslist.get(0)];
+        double ideal_frequency = FREQUENCIES[noteslist.get(current_measure_index).get(current_note_index)];
         if (frequency < ideal_frequency + 25 || frequency < ideal_frequency - 25) {
-            if (prev_note.getText() != "") { noteslist.remove(0); }
-            // switch notes
-            next_note.setText(NAME[noteslist.get(2)+1]);
-            prev_note.setText(NAME[noteslist.get(0)+1]);
-            current_note.setText(NAME[noteslist.get(1) + 1]);
+            // switch notes in views
+            prev_note.setText(NAME[noteslist.get(current_measure_index).get(current_note_index)+1]);
+            // update current_measure_index and current_note_index
+            if (noteslist.get(current_measure_index).size() == current_note_index + 1) {
+                current_note_index = 0;
+                current_measure_index += 1;
+                System.out.println("current measure: " + current_measure_index);
+            }
+            next_note.setText(NAME[noteslist.get(current_measure_index).get(current_note_index+1)]);
+            current_note.setText(NAME[noteslist.get(current_measure_index).get(current_note_index)]);
         }
 
         // check for pause and new note
         if (frequency >= 180 && frequency <= 1600 && (frequency < ideal_frequency + 200 || frequency > ideal_frequency - 200)) {
-            // sendToServer(index, new_note);
             current_note.setTextColor(getResources().getColor(R.color.red));
             Handler handler = new Handler();
             handler.postDelayed(new Runnable(){
                 public void run() {
                     current_note.setTextColor(getResources().getColor(R.color.white));
+                    //sendtoServer(current_measure_index, noteslist.get(current_measure_index).get(current_note_index));
                     System.out.println(NAME[currentFrameIndex+1]);
-                    //current_note.setText();
+                    current_note.setText(NAME[currentFrameIndex+1]);
                 }
-            }, 500);
+            }, 1000);
         }
-
 
         moveGauge(frameShift, offset);
     }
@@ -358,9 +410,22 @@ public class Main extends Activity {
         return minFreq;
     }
 
-    // arpeggio, delete
-    private void myoMotion() {
-        ServerApi.requestArpeggio();
-    }
+    // myo fist
+    public static void requestArpeggio() {
+        System.out.println("myo requesting arpeggio");
+        RequestParams params = new RequestParams();
+        ServerApi.post("arpeggio", params, new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                super.onSuccess(statusCode, headers, response);
+                Log.i("myo post request", response.toString());
+            }
 
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String errorResponse, Throwable e) {
+                super.onFailure(statusCode, headers, errorResponse, e);
+                System.out.println("SERVER ERROR" + errorResponse);
+            }
+        });
+    }
 }
